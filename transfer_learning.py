@@ -43,7 +43,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 # training
-for epoch in range(1):
+for epoch in range(10):
     running_loss = 0.0
     for i, data in enumerate(tqdm(train_loader)):
         inputs = data['image']
@@ -70,12 +70,13 @@ model.eval()
 correct_count = 0
 for i, data in enumerate(test_loader):
     inputs = data['image']
-    labels = data['label']
+    labels = data['label'][0]
     inputs = inputs.to(device)
     labels = labels.to(device)
     outputs = model(inputs)
-    print("Correct label: {} Predicted label: {}".format(test_set.get_label_from_id(labels[0]),test_set.get_label(outputs)))
-    correct_count += 1 if test_set.get_label(labels) == test_set.get_label(outputs) else 0
+    print("Correct label: {} Predicted label: {}".format(test_set.get_label_from_id(labels),test_set.get_label(outputs)))
+    if test_set.get_label(labels) == test_set.get_label(outputs):
+        correct_count += 1
 print("\n\nTotal Correct:\t{}/{}\n\n".format(correct_count,len(test_loader)))
 
 
