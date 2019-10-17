@@ -5,21 +5,22 @@ import torch.optim as optim
 import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
+from ToyDataset import ToyDataset
 
 # loading data
 transforms = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], 
+        transforms.Normalize([0.485, 0.456, 0.406],
                              [0.229, 0.224, 0.225])
     ])
-train_set = datasets.ImageFolder("data/train",transforms)
+train_set = ToyDataset('data/train',transforms)#datasets.ImageFolder("data/train",transforms)
 val_set   = datasets.ImageFolder("data/train",transforms)
-  
+
 train_loader = torch.utils.data.DataLoader(train_set, batch_size=4,
                                        shuffle=True, num_workers=4)
-val_loader = torch.utils.data.DataLoader(val_set, batch_size=4,  
+val_loader = torch.utils.data.DataLoader(val_set, batch_size=4,
                                        shuffle=True, num_workers=4)
 classes = train_set.classes
 device = torch.device("cuda:0" if torch.cuda.is_available()
@@ -40,18 +41,18 @@ optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 # training
 for epoch in range(25):
     running_loss = 0.0
-    for i, data in enumerate(train_loader, 0):
+    for i, data in enumerate(train_loader):
         inputs, labels = data
         inputs = inputs.to(device)
         labels = labels.to(device)
-        
+
         optimizer.zero_grad()
-        
+
         outputs = model(inputs)
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
-        
+
         running_loss += loss.item()
     print(running_loss)
 print('Finished Training')
