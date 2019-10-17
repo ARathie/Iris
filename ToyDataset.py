@@ -23,13 +23,23 @@ class ToyDataset(Dataset):
         class_paths = [x[0] for x in os.walk(root_dir)]
         self.classes = [x.split("/")[-1] for x in class_paths[1:]]
         self.image_paths = []
-        for c in class_paths:
+        for c in class_paths[1:]:
             [self.image_paths.append((c.split("/")[-1],x)) for x in os.listdir(c)]
         self.root_dir = class_paths[0]
         self.transform = transform
 
     def __len__(self):
         return len(self.image_paths)
+
+    def class_count(self):
+        return len(self.classes)
+
+    def get_label(self,pred):
+        id = pred.argmax().item()
+        return self.classes[id]
+
+    def get_label_from_id(self,pred):
+        return self.classes[pred]
 
     def __getitem__(self, idx):
         if torch.is_tensor(idx):
@@ -39,7 +49,9 @@ class ToyDataset(Dataset):
         label = self.image_paths[idx][0]
         image = Image.open("{}/{}/{}".format(self.root_dir,label,img_name)).convert('RGB')
         label = self.classes.index(label)
-        label = torch.from_numpy(np.array([label]).astype('float'))
+        ohe_label = np.zeros((len(self.classes),))
+        ohe_label[label] = 1
+        ohe_label = torch.from_numpy(ohe_label.astype('long'))
         if self.transform:
             image = self.transform(image)
         sample = {'image': image, 'label': label}

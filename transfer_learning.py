@@ -6,6 +6,7 @@ import numpy as np
 import torchvision
 from torchvision import datasets, models, transforms
 from ToyDataset import ToyDataset
+from tqdm import tqdm
 
 # loading data
 transforms = transforms.Compose([
@@ -17,10 +18,13 @@ transforms = transforms.Compose([
     ])
 train_set = ToyDataset('data/train',transforms)#datasets.ImageFolder("data/train",transforms)
 val_set   = datasets.ImageFolder("data/train",transforms)
+test_set = ToyDataset('data/test',transforms)
 
-train_loader = torch.utils.data.DataLoader(train_set, batch_size=4,
+train_loader = torch.utils.data.DataLoader(train_set, batch_size=10,
                                        shuffle=True, num_workers=4)
 val_loader = torch.utils.data.DataLoader(val_set, batch_size=4,
+                                       shuffle=True, num_workers=4)
+test_loader = torch.utils.data.DataLoader(test_set, batch_size=1,
                                        shuffle=True, num_workers=4)
 classes = train_set.classes
 device = torch.device("cuda:0" if torch.cuda.is_available()
@@ -33,16 +37,17 @@ for param in model.parameters():
     param.requires_grad = False
 
 num_ftrs = model.fc.in_features
-model.fc = nn.Linear(num_ftrs, 2)
+model.fc = nn.Linear(num_ftrs, train_set.class_count())
 model = model.to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
 # training
-for epoch in range(25):
+for epoch in range(1):
     running_loss = 0.0
-    for i, data in enumerate(train_loader):
-        inputs, labels = data
+    for i, data in enumerate(tqdm(train_loader)):
+        inputs = data['image']
+        labels = data['label']
         inputs = inputs.to(device)
         labels = labels.to(device)
 
@@ -57,6 +62,24 @@ for epoch in range(25):
     print(running_loss)
 print('Finished Training')
 
+
+# test with an Image
+print('Testing Images')
+from PIL import Image
+model.eval()
+correct_count = 0
+for i, data in enumerate(test_loader):
+    inputs = data['image']
+    labels = data['label']
+    inputs = inputs.to(device)
+    labels = labels.to(device)
+    outputs = model(inputs)
+    print("Correct label: {} Predicted label: {}".format(test_set.get_label_from_id(labels[0]),test_set.get_label(outputs)))
+    correct_count += 1 if test_set.get_label(labels) == test_set.get_label(outputs) else 0
+print("\n\nTotal Correct:\t{}/{}\n\n".format(correct_count,len(test_loader)))
+
+
+"""
 # validation
 class_correct = list(0. for i in range(2))
 class_total = list(0. for i in range(2))
@@ -76,21 +99,4 @@ for i in range(2):
     print('Accuracy of %5s : %2d %%' % (
         classes[i], 100 * class_correct[i] / class_total[i]))
 
-# test with an Image
-from PIL import Image
-model.eval()
-img_name = "1.jpeg" # change this to the name of your image file.
-def predict_image(image_path, model):
-    image = Image.open(image_path)
-    image_tensor = transforms(image)
-    image_tensor = image_tensor.unsqueeze(0)
-    image_tensor = image_tensor.to(device)
-    output = model(image_tensor)
-    index = output.argmax().item()
-    if index == 0:
-        return "Cat"
-    elif index == 1:
-        return "Dog"
-    else:
-        return
-predict(img_name,model)
+"""
