@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+import SwiftUI
 
 class ShoppingListVC: UITableViewController {
     var itemStore: ItemStore!
